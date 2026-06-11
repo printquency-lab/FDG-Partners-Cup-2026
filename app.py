@@ -117,7 +117,7 @@ st.markdown("""
 st.markdown("""
     <div class="branding-container">
         <img src="https://lh3.googleusercontent.com/d/1M8wUXNnP8dQoNhmE896WXDuwXlLQFk-G" alt="FDG Logo" style="max-width:65px; height:auto; margin-bottom:4px;">
-        <div class="branding-title">FDG Partner Cup 2026 <span style="color:#facc15;">2026</span></div>
+        <div class="branding-title">FDG Partners Cup <span style="color:#facc15;">2026</span></div>
         <div class="branding-subtitle">Gate Marshal Portal</div>
     </div>
 """, unsafe_allow_html=True)
