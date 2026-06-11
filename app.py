@@ -4,12 +4,19 @@ import pandas as pd
 import requests
 
 # Set page layout to centered
-st.set_page_config(page_title="PARTNERS CUP 2026 - Gate Marshal Portal", page_icon="🛡️", layout="centered")
+st.set_page_config(page_title="FDG Cup 2026 - Gate Marshal Portal", page_icon="🛡️", layout="centered")
 
-# Optimized CSS for glassmorphic design
+# Optimized CSS
 st.markdown("""
     <style>
-    [data-testid="stAppViewContainer"] { background-color: #0b0f19; }
+    [data-testid="stAppViewContainer"] {
+        background-image: url('https://lh3.googleusercontent.com/d/1Ta76TkvnUcNszyAPIsmob0oCMoMFzbTC');
+        background-size: cover;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+        background-position: center;
+    }
+    [data-testid="stHeader"] { background: transparent !important; }
     [data-testid="stMainBlockContainer"] {
         background-color: rgba(23, 29, 41, 0.92) !important;
         border: 1px solid rgba(255, 255, 255, 0.1);
@@ -19,47 +26,74 @@ st.markdown("""
         max-width: 480px !important;
         margin: 20px auto !important;
     }
-    .branding-title { font-size: 28px; font-weight: 800; color: #ffffff; text-align: center; }
+    .branding-container { text-align: center; margin-bottom: 10px; }
+    .branding-title { font-family: sans-serif; font-size: 30px; font-weight: 800; color: #ffffff; }
+    .branding-subtitle { font-size: 13px; font-weight: 700; color: #10b981; letter-spacing: 2px; text-transform: uppercase; }
     div[data-testid="stCustomComponentV1"] {
-        width: 100% !important;
-        height: 290px !important;
-        border-radius: 20px !important;
-        border: 3px solid #10b981 !important;
-        overflow: hidden !important;
+        width: 100% !important; height: 290px !important;
+        border-radius: 20px !important; border: 3px solid #10b981 !important;
+        overflow: hidden !important; background-color: #111827;
     }
+    .badge-container { background: rgba(0, 0, 0, 0.4); padding: 20px; border-radius: 14px; border: 1px solid #10b981; text-align: center; }
+    .badge-number { font-size: 46px; font-weight: 800; color: #facc15; }
     </style>
 """, unsafe_allow_html=True)
 
-st.markdown('<div class="branding-title">PARTNERS CUP <span style="color:#facc15;">2026</span></div>', unsafe_allow_html=True)
-st.markdown("---")
+# Branding
+st.markdown("""
+    <div class="branding-container">
+        <div class="branding-title">FDG CUP 2026</div>
+        <div class="branding-subtitle">Gate Marshal Portal</div>
+    </div>
+""", unsafe_allow_html=True)
 
-# CONFIGURATION
-# IMPORTANT: Ensure this ID matches your specific Google Sheet URL characters
-SPREADSHEET_ID = "1PUcUeTApYbCjYbkEn9BzItRjRArLKMVnIqz_7Mtd7-w" 
+# Configuration
 GAS_URL = "https://script.google.com/macros/s/AKfycby-xHIDB9hv5yaFWl99g4aq15__thpMQRj37NAYvJ0g1ogsiI-jnRGtHwYMfXdhFEkvCw/exec"
+SPREADSHEET_ID = "1PUcUeTApYbCjYbkEn9BzItRjRArLKMVnIqz_7Mtd7-w"
 
-# State Management
-if "active_scan_completed" not in st.session_state:
-    st.session_state.active_scan_completed = False
+# State
+if "active_scan_completed" not in st.session_state: st.session_state.active_scan_completed = False
+if "display_payload" not in st.session_state: st.session_state.display_payload = {}
 
-# Logic
+# Data Engine
+@st.cache_data(ttl=30)
 def fetch_sheet_data():
     try:
         csv_url = f"https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/export?format=csv&gid=0"
         df = pd.read_csv(csv_url, header=None)
         return df.values.tolist()
-    except Exception:
+    except:
         return []
 
-# App Interface
-if not st.session_state.active_scan_completed:
-    st.markdown("<p style='text-align:center; color:#9ca3af;'>Align QR code in the window below:</p>", unsafe_allow_html=True)
-    scanned_raw = qrcode_scanner(key='live_marshal_camera_engine')
-    if scanned_raw:
-        st.success(f"Detected: {scanned_raw}")
-        st.session_state.active_scan_completed = True
-        st.rerun()
-else:
-    if st.button("Scan Another Player"):
+all_records = fetch_sheet_data()
+
+# Logic
+if st.session_state.active_scan_completed:
+    payload = st.session_state.display_payload
+    if payload["status"] == "SUCCESS":
+        st.success("✓ Access Authorized")
+        st.markdown(f'<div class="badge-container"><div class="badge-number">BAG #{payload["bag"]}</div><p>{payload["name"]}</p></div>', unsafe_allow_html=True)
+    else:
+        st.error("⚠️ Already Checked In")
+    if st.button("📷 Scan Next Player"):
         st.session_state.active_scan_completed = False
         st.rerun()
+else:
+    scanned_raw = qrcode_scanner(key='live_marshal_camera_engine')
+    if scanned_raw:
+        try:
+            row_id = int(scanned_raw.split("-")[1])
+            if 0 <= row_id < len(all_records): # Safety check
+                player_row = all_records[row_id]
+                player_name = f"{player_row[1]} {player_row[0]}"
+                if str(player_row[6]).strip() == "Checked-In":
+                    st.session_state.display_payload = {"status": "DUPLICATE", "name": player_name}
+                else:
+                    requests.get(GAS_URL, params={"mode": "verify_bypass", "pid": row_id}, timeout=5)
+                    st.session_state.display_payload = {"status": "SUCCESS", "name": player_name, "bag": player_row[5]}
+                st.session_state.active_scan_completed = True
+                st.rerun()
+            else:
+                st.error("Invalid QR Code: ID out of range.")
+        except Exception as e:
+            st.error(f"Scan Error: {e}")
