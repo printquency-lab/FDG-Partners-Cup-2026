@@ -126,7 +126,7 @@ st.markdown("---")
 # =========================================================================
 # CONFIGURATION TARGETS
 # =========================================================================
-GAS_URL = "https://script.google.com/macros/s/AKfycbyTDz_95i6-vfGWxPIUL-2hSfJJy-soP_Ss4T9plGK4zP7gwA7EQwCOfFS1Zk9FLvdzVQ/exec" 
+GAS_URL = "https://script.google.com/macros/s/AKfycbz5cyH1VmBhse09B_2HAclGGo5_06Mjir4OHTxhMPtfXOA6qOWcTibklecyKRRcfcfGpw/exec" 
 SPREADSHEET_ID = "1PUcUeTApYbCjYbkEn9BzItRjRArLKMVnIqz_7Mtd7-w"
 
 # State Management
